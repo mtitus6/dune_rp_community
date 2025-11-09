@@ -31,6 +31,17 @@ weth_price as (
     from prices.usd_latest
     where contract_address = 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
 )
+,
+rewards as (
+    select
+        node_address,
+        sum(amount_rpl) as rpl_rewards_claimed_rpl,
+        sum(amount_eth) as eth_rewards_claimed,
+        sum(amount_rpl_usd) as rpl_rewards_claimed_usd,
+        sum(amount_eth_usd) as eth_rewards_claimed_usd
+    from query_5117116
+    group by 1
+)
 
 select
     nodes.node_address,
@@ -56,8 +67,13 @@ select
         else 0
     end as rpl_vs_borrowed_ratio,
     coalesce(smooth.in_smoothing_pool, false) as in_smoothing_pool,
-    coalesce(smooth.t, nodes.t) as in_smoothing_pool_t
+    coalesce(smooth.t, nodes.t) as in_smoothing_pool_t,
+    rewards.rpl_rewards_claimed_rpl,
+    rewards.eth_rewards_claimed,
+    rewards.rpl_rewards_claimed_usd,
+    rewards.eth_rewards_claimed_usd
 from query_4108312 as nodes /* node_operators */
 left join minipools on nodes.node_address = minipools.node_address
 left join rpl_stake on nodes.node_address = rpl_stake.node_address
 left join query_4118898 as smooth on nodes.node_address = smooth.node_address
+left join rewards on nodes.node_address = rewards.node_address
